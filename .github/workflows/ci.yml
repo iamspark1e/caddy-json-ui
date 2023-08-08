@@ -54,23 +54,23 @@ jobs:
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ github.sha }}
             ghcr.io/${{ github.repository }}:${{ github.event.release.tag_name }}
-  releases-matrix:
-    name: Release Go Binary
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
-        goos: [linux, windows, darwin]
-        goarch: ["386", amd64, arm64]
-        exclude:
-          - goarch: "386"
-            goos: darwin
-          - goarch: arm64
-            goos: windows
-    steps:
-      - uses: actions/checkout@v3
-      - uses: wangyoucao577/go-release-action@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          goos: ${{ matrix.goos }}
-          goarch: ${{ matrix.goarch }}
+  # releases-matrix:
+  #   name: Release Go Binary
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
+  #       goos: [linux, windows, darwin]
+  #       goarch: ["386", amd64, arm64]
+  #       exclude:
+  #         - goarch: "386"
+  #           goos: darwin
+  #         - goarch: arm64
+  #           goos: windows
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: wangyoucao577/go-release-action@v1
+  #       with:
+  #         github_token: ${{ secrets.GITHUB_TOKEN }}
+  #         goos: ${{ matrix.goos }}
+  #         goarch: ${{ matrix.goarch }}
