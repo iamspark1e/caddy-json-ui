@@ -34,8 +34,10 @@ jobs:
       - name: Download latest schema
         uses: actions/download-artifact@v3
         with:
-          # name: caddy-schema
-          path: public/caddy_schema.json
+          name: caddy-schema
+          path: /tmp/caddy_schema
+      - name: Unzip file
+        run: tar -zxvf /tmp/caddy_schema ./public
       - name: Display structure of downloaded files
         run: ls -R
       - name: Set up QEMU
