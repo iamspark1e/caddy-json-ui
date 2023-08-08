@@ -19,7 +19,7 @@ jobs:
       - name: Archive config json
         uses: actions/upload-artifact@v3
         with:
-          name: caddy-schema
+          # name: caddy-schema
           path: .vscode/caddy_schema.json
   dockerize:
     name: Build docker containers
@@ -34,7 +34,7 @@ jobs:
       - name: Download latest schema
         uses: actions/download-artifact@v3
         with:
-          name: caddy-schema
+          # name: caddy-schema
           path: public/caddy_schema.json
       - name: Display structure of downloaded files
         run: ls -R
