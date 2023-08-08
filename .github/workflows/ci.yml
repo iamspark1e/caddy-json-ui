@@ -36,8 +36,8 @@ jobs:
         with:
           name: caddy-schema
           path: /tmp/caddy_schema
-      - name: Unzip file
-        run: tar -zxvf /tmp/caddy_schema ./public
+      - name: Copy file
+        run: cp /tmp/caddy_schema/caddy_schema.json ./public/caddy_schema.json
       - name: Display structure of downloaded files
         run: ls -R
       - name: Set up QEMU
