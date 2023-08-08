@@ -1,0 +1,10 @@
+whitelist
+xcaddy
+caddy
+caddy-json-ui
+README.md
+.gitignore
+**/.gitkeep
+.github/**/*
+.vscode/**/*
+docs/**/*

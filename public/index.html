@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.3/dist/cdn.min.js"
+        integrity="sha256-tthxNdZk9Up2D6gLZBNxWo/w14TijORR5uNgYj7XP+A=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.css"
+        integrity="sha256-cDGQ39yChhpN5vzgHbjIdGEtQ5kXE9tttCsI7VR9TuY=" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/monaco-editor@0.40.0/min/vs/editor/editor.main.min.css" rel="stylesheet">
+    <title>Caddy JSON UI</title>
+    <style>
+        .config-editor-wrapper {
+            width: 1000px;
+            /* height: 400px; */
+            box-sizing: content-box;
+            margin: auto !important;
+        }
+
+        #config-editor {
+            width: 1000px;
+            height: 400px;
+        }
+
+        /* enhanced pure semantic ui */
+        .ui.menu .item>.ui.vertical.menu {
+            display: none;
+            position: absolute;
+            left: 0;
+            top: 100%;
+            z-index: 10;
+            width: 315px;
+        }
+
+        .ui.menu .item>.ui.vertical.menu .item {
+            margin: 0;
+        }
+
+        .ui.menu .item:hover>.item+.ui.vertical.menu {
+            display: block;
+        }
+
+        /* custom */
+        i.icon {
+            display: inline-block;
+            vertical-align: middle;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            font-style: normal;
+            font-size: 0;
+        }
+
+        i.icon.icon-caret_down {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 512 512'%3E%3Cpath d='M98 190.06l139.78 163.12a24 24 0 0 0 36.44 0L414 190.06c13.34-15.57 2.28-39.62-18.22-39.62h-279.6c-20.5 0-31.56 24.05-18.18 39.62z' fill='currentColor'%3E%3C/path%3E%3C/svg%3E");
+            width: 12px;
+            height: 12px;
+        }
+
+        i.icon.icon-clipboard_outline {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 512 512'%3E%3Cpath d='M336 64h32a48 48 0 0 1 48 48v320a48 48 0 0 1-48 48H144a48 48 0 0 1-48-48V112a48 48 0 0 1 48-48h32' fill='none' stroke='currentColor' stroke-linejoin='round' stroke-width='32'%3E%3C/path%3E%3Crect x='176' y='32' width='160' height='64' rx='26.13' ry='26.13' fill='none' stroke='currentColor' stroke-linejoin='round' stroke-width='32'%3E%3C/rect%3E%3C/svg%3E");
+        }
+
+        i.icon.icon-open_outline {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 512 512'%3E%3Cpath d='M384 224v184a40 40 0 0 1-40 40H104a40 40 0 0 1-40-40V168a40 40 0 0 1 40-40h167.48' fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='32'%3E%3C/path%3E%3Cpath fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='32' d='M336 64h112v112'%3E%3C/path%3E%3Cpath fill='none' stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='32' d='M224 288L440 72'%3E%3C/path%3E%3C/svg%3E");
+            width: 10px !important;
+            height: 10px;
+            margin-left: 4px;
+        }
+    </style>
+    <script>var require = { paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.40.0/min/vs' } };</script>
+    <script src="./bcrypt.min.js"></script>
+</head>
+
+<body x-data="root">
+    <header style="max-width: 1000px;margin: 0 auto;margin-bottom: 20px;">
+        <div class="ui secondary menu">
+            <div class="item">
+                <h3>Caddy JSON UI</h3>
+            </div>
+            <div class="item">
+                <div class="item">Tools<i class="icon icon-caret_down"></i></div>
+                <div class="ui vertical menu">
+                    <a class="item" onclick="dispatchCustomEvent('custom__toolbox__show:modalBcrypt')">bcrypt ...</a>
+                    <a class="item" href="https://caddapto.vercel.app/" target="_blank"
+                        title="Go to Github page...">Caddyfile To JSON (Made by
+                        suryamodulus)<i class="icon icon-open_outline"></i></a>
+                </div>
+            </div>
+            <div class="right menu" style="padding-right: 0;">
+                <div class="ui item">
+                    <div class="ui primary button" x-on:click="__updateServerConfig"
+                        :class="changed_config ? '' : 'disabled'" :class="saving ? 'loading' : ''">Save</div>
+                </div>
+                <div class="ui item" style="padding-right:0;margin-right:0;">
+                    <div class="ui button" x-on:click="__discardChanges">Discard Changes</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="ui segment config-editor-wrapper" :class="loading ? 'loading' : ''">
+        <div class="ui message">
+            You can use <code>{"$schema": ""}</code> to enable Caddy JSON intellisense. (powered by <a
+                href="https://github.com/abiosoft/caddy-json-schema" target="_blank">abiosoft/caddy-json-schema<i
+                    class="icon icon-open_outline"></i></a>)
+        </div>
+        <div id="config-editor"></div>
+    </div>
+    <div x-data="modalBcrypt" class="ui dimmer modals page visible" :class="show ? 'active' : ''">
+        <div class="ui standard modal transition visible active">
+            <div class="header">
+                <h3>Bcrypt Tool<span style="font-size: 12px;margin-left: 10px;">(using <a
+                            href="https://github.com/dcodeIO/bcrypt.js" target="_blank"
+                            title="Go to Github page...">bcrypt.js</a> for browser-side
+                        conversion)</span></h3>
+            </div>
+            <div class="content">
+                <form class="ui form">
+                    <div class="field">
+                        <label class="title">Origin Text: </label>
+                        <textarea name="origin" rows="2" name="raw" x-model="data.origin"></textarea>
+                    </div>
+                    <div class="field">
+                        <label class="title">Salt: </label>
+                        <input type="text" name="salt" x-model="data.salt" readonly />
+                    </div>
+                    <div class="field">
+                        <label>Converted Text: (focus to copy)</label>
+                        <textarea name="hash" rows="2" x-model="data.hash" readonly
+                            x-on:focus="copy2Clipboard"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="actions">
+                <div class="ui black deny button" x-on:click="toggle">
+                    Close
+                </div>
+                <div class="ui positive button">
+                    Copy To Clipboard
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    function copy2Clipboard(content) {
+        if (window.navigator && window.navigator.clipboard) {
+            navigator.clipboard.writeText(content).then(() => {
+                console.log('success')
+            }, () => {
+                console.log('failed')
+                console.log(arguments)
+            }).catch(e => {
+                console.log(e)
+            })
+        } else {
+            var i = document.createElement("input")
+            i.setAttribute("style", "position:absolute;z-index:-1;width:1px;height:1px;top:-1px;opacity:0;-webkit-user-select: text;")
+            document.body.appendChild(i)
+            i.value = content
+            var t = i.contentEditable,
+                n = i.readOnly,
+                o = document.createRange();
+            i.contentEditable = !0
+            i.readOnly = !1
+            o.selectNodeContents(i);
+            var a = window.getSelection();
+            a.removeAllRanges()
+            a.addRange(o)
+            i.setSelectionRange(0, 999999)
+            i.contentEditable = t
+            i.readOnly = n
+            window.document.execCommand("Copy")
+            i.blur()
+            document.body.removeChild(i)
+            i = null
+        }
+    }
+    function scriptLoader(url) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script')
+            script.type = 'text/javascript'
+            script.async = true
+            script.src = url
+            if (script.readyState) {
+                script.onreadystatechange = () => {
+                    if (script.readyState === 'loaded' || script.readyState === 'complete') {
+                        script.onreadystatechange = null
+                        resolve()
+                    }
+                }
+            } else {
+                script.onload = resolve
+            }
+            document.body.appendChild(script)
+        })
+    }
+    function loadJsonToVars(jsonUrl) {
+        return new Promise((resolve, reject) => {
+            if (!jsonUrl) reject;
+            fetch(jsonUrl).then(r => r.text()).then(jsonText => {
+                let variable = JSON.parse(jsonText);
+                resolve(variable)
+            }).catch(e => {
+                reject()
+            })
+        })
+    }
+    function dispatchCustomEvent(eventName, payload) {
+        const evt = new CustomEvent(eventName, { detail: payload });
+        document.dispatchEvent(evt);
+    }
+    document.addEventListener("alpine:init", () => {
+        // Global data
+        Alpine.data('root', () => ({
+            loading: false,
+            last_config: "",
+            changed_config: false,
+            saving: false,
+            __initMonacoEditor() {
+                this.loading = true;
+                Promise.all([
+                    scriptLoader("https://cdn.jsdelivr.net/npm/monaco-editor@0.40.0/min/vs/loader.js"),
+                    scriptLoader("https://cdn.jsdelivr.net/npm/monaco-editor@0.40.0/min/vs/editor/editor.main.nls.js"), // FIXME: Uncaught ReferenceError: define is not defined at editor.main.nls.js:11:1
+                    scriptLoader("https://cdn.jsdelivr.net/npm/monaco-editor@0.40.0/min/vs/editor/editor.main.js"),
+                ]).then((res) => {
+                    window.onload = () => {
+                        this.loading = false;
+                        monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+                            validate: true,
+                            enableSchemaRequest: true
+                        })
+                        monaco.languages.registerCompletionItemProvider('json', {
+                            provideCompletionItems: (model, position) => {
+                                // find out if we are completing a property in the 'dependencies' object.
+                                var textUntilPosition = model.getValueInRange({
+                                    startLineNumber: 1,
+                                    startColumn: 1,
+                                    endLineNumber: position.lineNumber,
+                                    endColumn: position.column,
+                                });
+                                // var match = textUntilPosition.match(
+                                //     /"servers": {\s*:\s*\{\s*("[^"]*"\s*:\s*"[^"]*"\s*,\s*)*([^"]*)?$/
+                                // );
+                                // if (!match) {
+                                //     return { suggestions: [] };
+                                // }
+                                return {
+                                    suggestions: [
+                                        // http.handlers
+                                        {
+                                            label: 'match (SNI match)',
+                                            kind: monaco.languages.CompletionItemKind.Function,
+                                            documentation: '`apps.http.servers[srv_id]`',
+                                            insertText: [
+                                                '"${1:srv}": {',
+                                                '\t"listen": [":${2:port}"],',
+                                                '\t"routes": [{',
+                                                '\t\t"match": [{',
+                                                '\t\t\t"host": ["${0}"]',
+                                                '\t\t}]',
+                                                '\t}]',
+                                                '}'].join('\n'),
+                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                        },
+                                        {
+                                            label: 'handler (Reverse Proxy)',
+                                            kind: monaco.languages.CompletionItemKind.Function,
+                                            documentation: '`apps.http.servers[srv_id]`',
+                                            insertText: [
+                                                '{',
+                                                '\t"handler": "reverse_proxy",',
+                                                '\t"upstreams": [{',
+                                                '\t\t"dial": "${0}"',
+                                                '\t}]',
+                                                '}'].join('\n'),
+                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                        },
+                                        {
+                                            label: 'handler (File Server)',
+                                            kind: monaco.languages.CompletionItemKind.Function,
+                                            documentation: '`apps.http.servers[srv_id]`',
+                                            insertText: [
+                                                '{',
+                                                '\t"handler": "file_server",',
+                                                '\t"hide": ["${1}"],',
+                                                '\t"root": "${0}"',
+                                                '}'].join('\n'),
+                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                        },
+                                        {
+                                            label: 'handler (WebDAV)',
+                                            kind: monaco.languages.CompletionItemKind.Function,
+                                            documentation: '`apps.http.servers[srv_id]`',
+                                            insertText: [
+                                                '{',
+                                                '\t"handler": "webdav",',
+                                                '\t"prefix": "${1}",',
+                                                '\t"root": "${0}"',
+                                                '}'].join('\n'),
+                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                        },
+                                        {
+                                            label: 'handler (Basic Auth)',
+                                            kind: monaco.languages.CompletionItemKind.Function,
+                                            documentation: '`apps.http.servers[srv_id]`',
+                                            insertText: [
+                                                '{',
+                                                '\t"handler": "authentication",',
+                                                '\t"providers": "http_basic",',
+                                                '\t"hash": "bcrypt",',
+                                                '\t"accounts": [{',
+                                                '\t\t"username": "${1}",',
+                                                '\t\t"password": "${2}",',
+                                                '\t\t"salt": "${0}",',
+                                                '\t}],',
+                                                '\t"realm": "restricted"',
+                                                '}'].join('\n'),
+                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                        },
+                                        {
+                                            label: 'handler (Forward Proxy)',
+                                            kind: monaco.languages.CompletionItemKind.Function,
+                                            documentation: '`apps.http.servers[srv_id]`',
+                                            insertText: [
+                                                '{',
+                                                '\t"handler": "forward_proxy",',
+                                                '\t"hide_ip": true,',
+                                                '\t"hide_via": true,',
+                                                '\t"auth_user_deprecated": "${1}",',
+                                                '\t"auth_pass_deprecated": "${2}",',
+                                                '\t"probe_resistance": {"domain": "${0}"}',
+                                                '}'].join('\n'),
+                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                        },
+                                        {
+                                            label: 'handler (Static Response)',
+                                            kind: monaco.languages.CompletionItemKind.Function,
+                                            documentation: '`apps.http.servers[srv_id]`',
+                                            insertText: [
+                                                '{',
+                                                '\t"handler": "static_response",',
+                                                '\t"status_code": 200,',
+                                                '\t"body": "${0}"',
+                                                '}'].join('\n'),
+                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                        },
+                                        {
+                                            label: 'handler (Subroute)',
+                                            kind: monaco.languages.CompletionItemKind.Function,
+                                            documentation: '`apps.http.servers[srv_id]`',
+                                            insertText: [
+                                                '{',
+                                                '\t"handler": "subroute",',
+                                                '\t"routes": [${0}]',
+                                                '}'].join('\n'),
+                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                        },
+                                        // tls configuration
+                                        {
+                                            label: 'tls',
+                                            kind: monaco.languages.CompletionItemKind.Function,
+                                            documentation: '`apps.tls',
+                                            insertText: [
+                                                '"tls": {',
+                                                '\t"certificates": {',
+                                                '\t\t"automate": ["${0}"]',
+                                                '\t},',
+                                                '\t"automation":{"policies":[{"issuers": [{',
+                                                '\t\t"email": "${1}",',
+                                                '\t\t"module": "${2}"',
+                                                '\t}]}]', // it seems that no "subjects", still works
+                                                '\t}',
+                                                '}'].join('\n'),
+                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                        },
+                                    ]
+                                };
+                            }
+                        });
+                        let editor = monaco.editor.create(document.getElementById('config-editor'), {
+                            value: '{}',
+                            language: 'json',
+                        })
+                        window.CADDY_CONFIG_EDITOR = editor
+                        this.__loadServerConfig().then(res => {
+                            if (res.ok) {
+                                this.last_config = res.data;
+                                editor.getModel().setValue(JSON.stringify(JSON.parse(res.data), null, 4))
+                                editor.getModel().onDidChangeContent((event) => {
+                                    this.changed_config = false;
+                                    try {
+                                        let currentJSON = JSON.stringify(editor.getModel().getValue())
+                                        if (currentJSON !== this.last_config) this.changed_config = true;
+                                    } catch (e) {
+                                        console.log(e)
+                                    }
+                                });
+                            } else {
+                                alert(res.msg)
+                            }
+                        });
+                    }
+                })
+            },
+            __setMonacoEditorValue(json) {
+                console.log(this.editor)
+                this.editor.getModel().setValue(json)
+            },
+            __loadServerConfig() {
+                return fetch("/api/load").then(r => r.json())
+            },
+            __updateServerConfig() {
+                if (!this.changed_config) return;
+                let currentConfig = window.CADDY_CONFIG_EDITOR.getModel().getValue();
+                try {
+                    let obj = JSON.parse(currentConfig)
+                    if (obj["$schema"]) delete obj["$schema"]
+                    currentConfig = JSON.stringify(obj);
+                } catch (e) {
+                    alert(e.message);
+                    return;
+                }
+                this.saving = true;
+                fetch("/api/save", {
+                    method: "POST",
+                    body: currentConfig
+                }).then(r => r.json()).then(res => {
+                    if (res.ok) {
+                        this.last_config = JSON.stringify(JSON.parse(currentConfig))
+                        this.changed_config = false;
+                    } else {
+                        alert(res.msg)
+                    }
+                }).finally(() => {
+                    this.saving = false;
+                })
+            },
+            __discardChanges() {
+                window.CADDY_CONFIG_EDITOR.getModel().setValue(JSON.stringify(JSON.parse(this.last_config), null, 4))
+            },
+            init() {
+                this.__initMonacoEditor();
+            }
+        }))
+
+        // Toolbox - modalBcrypt
+        Alpine.data("modalBcrypt", () => ({
+            show: false,
+            data: {
+                salt: "",
+                origin: "",
+                hash: ""
+            },
+            bcrypt: null,
+            toggle() {
+                this.show = !this.show
+            },
+            copy2Clipboard(e) {
+                if (this.data.hash) {
+                    copy2Clipboard(this.data.hash);
+                    alert("The hashed value has been copied to clipboard.")
+                } else {
+                    alert("No data yet.")
+                }
+                e.target.blur();
+            },
+            init() {
+                this.bcrypt = dcodeIO.bcrypt;
+                this.data.salt = this.bcrypt.genSaltSync(10);
+                document.addEventListener("custom__toolbox__show:modalBcrypt", () => {
+                    this.show = true;
+                })
+                this.$watch('data.origin', value => {
+                    this.data.hash = this.bcrypt.hashSync(value, this.data.salt)
+                })
+            },
+        }))
+    })
+</script>
+
+</html>
