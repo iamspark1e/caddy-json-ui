@@ -18,6 +18,14 @@ import (
 	_ "net/http/pprof"
 )
 
+func stashLatestCaddyConfig(jsonContent []byte) error {
+	err := os.WriteFile("./config/config.json", jsonContent, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	endpoint := os.Getenv("CADDY_API_ENDPOINT")
 	if endpoint == "" {
@@ -66,7 +74,9 @@ func main() {
 					"ok":  0,
 					"msg": err.Error(),
 				})
+				return
 			}
+			stashLatestCaddyConfig(jsonByte)
 			c.JSON(http.StatusOK, gin.H{
 				"ok":  1,
 				"msg": "Success",
