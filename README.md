@@ -34,6 +34,8 @@ And put the `.vscode/caddy_schema.json` into `public` folder.
 
 Declare the `"$scheme"` key and use full url to refer it.
 
+> Container image "ghcr.io/iamspark1e/caddy-json-ui" already has a schema file under "./public" by using Github Action, you can directly use it with `{"$schema": "http://127.0.0.1:8045/caddy_schema.json"}` (replace the url in your condition).
+
 ## Development
 
 ### Run

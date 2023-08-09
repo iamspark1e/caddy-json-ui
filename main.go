@@ -21,6 +21,15 @@ func main() {
 		endpoint = bootstrap.CaddyAPIEndpoint
 	}
 	caddySrv := internal.NewCaddyServer(endpoint)
+	// check if not config.json exists
+	file, err := os.Open("./config/config.json")
+	if err != nil {
+		err = os.WriteFile("./config/config.json", []byte("{\"admin\": {\"listen\": \"127.0.0.1:2019\"}}"), 0644)
+		if err != nil {
+			log.Print("Write default config failed")
+		}
+	}
+	defer file.Close()
 
 	gin.SetMode(gin.ReleaseMode)
 	apiEng := gin.New()
@@ -82,7 +91,7 @@ func main() {
 		}
 	})
 
-	err := r.Run(fmt.Sprintf(":%d", bootstrap.Port))
+	err = r.Run(fmt.Sprintf(":%d", bootstrap.Port))
 	if err != nil {
 		log.Fatal(err)
 	}

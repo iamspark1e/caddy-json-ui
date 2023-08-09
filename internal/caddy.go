@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 )
 
 // ref: https://github.com/qdm12/caddy-ui-server
@@ -53,6 +54,14 @@ func (p *caddyServer) GetCaddyConfig() (jsonContent []byte, err error) {
 	return jsonContent, nil
 }
 
+func stashLatestCaddyConfig(jsonContent []byte) error {
+	err := os.WriteFile("./config/config.json", jsonContent, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (p *caddyServer) SetCaddyConfig(jsonContent []byte) (err error) {
 	r, err := http.NewRequest(http.MethodPost, p.caddyAPIEndpoint+"/load", bytes.NewBuffer(jsonContent))
 	if err != nil {
@@ -65,6 +74,10 @@ func (p *caddyServer) SetCaddyConfig(jsonContent []byte) (err error) {
 	}
 	// p.logger.Info("Caddy (set config) responded HTTP status %d with content: %s", status, string(jsonContent))
 	if status == http.StatusOK {
+		err = stashLatestCaddyConfig(jsonContent)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 	response := struct {
