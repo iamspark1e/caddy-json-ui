@@ -11,8 +11,11 @@ import (
 	bootstrap "caddy-json-ui/bootstrap"
 	internal "caddy-json-ui/internal"
 	middleware "caddy-json-ui/middleware"
+	utils "caddy-json-ui/utils"
 
 	"github.com/gin-gonic/gin"
+
+	_ "net/http/pprof"
 )
 
 func main() {
@@ -21,23 +24,28 @@ func main() {
 		endpoint = bootstrap.CaddyAPIEndpoint
 	}
 	caddySrv := internal.NewCaddyServer(endpoint)
-	// check if not config.json exists
-	file, err := os.Open("./config/config.json")
-	if err != nil {
-		if _, err := os.Stat("./config"); os.IsNotExist(err) {
-			err = os.Mkdir("./config", 0777)
+	exist, existErr := utils.PathExists("./config/config.json")
+	if existErr != nil {
+		log.Print("Stat config dir failed")
+		log.Panic(existErr.Error())
+		return
+	}
+
+	if !exist {
+		err := os.Mkdir("./config", os.ModePerm)
+		if err != nil {
+			log.Print("Mkdir config dir failed")
+			log.Panic(err.Error())
+			return
+		} else {
+			err = os.WriteFile("./config/config.json", []byte("{\"admin\": {\"listen\": \"127.0.0.1:2019\"}}"), os.ModePerm)
 			if err != nil {
-				log.Print("Make config dir failed")
+				log.Print("Write config file failed")
+				log.Panic(err.Error())
 				return
 			}
 		}
-		err = os.WriteFile("./config/config.json", []byte("{\"admin\": {\"listen\": \"127.0.0.1:2019\"}}"), 0777)
-		if err != nil {
-			log.Print("Write default config failed")
-			log.Print(err.Error())
-		}
 	}
-	defer file.Close()
 
 	gin.SetMode(gin.ReleaseMode)
 	apiEng := gin.New()
@@ -99,8 +107,8 @@ func main() {
 		}
 	})
 
-	err = r.Run(fmt.Sprintf(":%d", bootstrap.Port))
-	if err != nil {
-		log.Fatal(err)
+	e := r.Run(fmt.Sprintf(":%d", bootstrap.Port))
+	if e != nil {
+		log.Fatal(e)
 	}
 }
