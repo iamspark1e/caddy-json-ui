@@ -10,5 +10,5 @@ WORKDIR /
 COPY --from=build /caddy-json-ui /caddy-json-ui
 COPY ./public /public
 EXPOSE 8045
-HEALTHCHECK --interval=10s --timeout=60s CMD curl --fail http://127.0.0.1:8045/api/healthy || exit 1
+# HEALTHCHECK --interval=10s --timeout=60s CMD curl --fail http://127.0.0.1:8045/api/healthy || exit 1
 ENTRYPOINT ["/caddy-json-ui"]

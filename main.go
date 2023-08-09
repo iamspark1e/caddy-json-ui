@@ -24,9 +24,17 @@ func main() {
 	// check if not config.json exists
 	file, err := os.Open("./config/config.json")
 	if err != nil {
-		err = os.WriteFile("./config/config.json", []byte("{\"admin\": {\"listen\": \"127.0.0.1:2019\"}}"), 0644)
+		if _, err := os.Stat("./config"); os.IsNotExist(err) {
+			err = os.Mkdir("./config", 0777)
+			if err != nil {
+				log.Print("Make config dir failed")
+				return
+			}
+		}
+		err = os.WriteFile("./config/config.json", []byte("{\"admin\": {\"listen\": \"127.0.0.1:2019\"}}"), 0777)
 		if err != nil {
 			log.Print("Write default config failed")
+			log.Print(err.Error())
 		}
 	}
 	defer file.Close()

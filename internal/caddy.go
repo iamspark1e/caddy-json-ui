@@ -55,7 +55,7 @@ func (p *caddyServer) GetCaddyConfig() (jsonContent []byte, err error) {
 }
 
 func stashLatestCaddyConfig(jsonContent []byte) error {
-	err := os.WriteFile("./config/config.json", jsonContent, 0644)
+	err := os.WriteFile("./config/config.json", jsonContent, 0777)
 	if err != nil {
 		return err
 	}
