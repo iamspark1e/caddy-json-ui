@@ -3,6 +3,7 @@ package caddy_manager_internal
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -72,6 +73,10 @@ func (p *caddyServer) SetCaddyConfig(jsonContent []byte) (err error) {
 	}{}
 	if err := json.Unmarshal(jsonContent, &response); err != nil {
 		return err
+	}
+	if response.Error != "" {
+		resErr := errors.New(response.Error)
+		return resErr
 	}
 	return nil
 }

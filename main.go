@@ -14,8 +14,6 @@ import (
 	utils "caddy-json-ui/utils"
 
 	"github.com/gin-gonic/gin"
-
-	_ "net/http/pprof"
 )
 
 func stashLatestCaddyConfig(jsonContent []byte) error {
