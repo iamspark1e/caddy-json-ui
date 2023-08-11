@@ -7,39 +7,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.3/dist/cdn.min.js"
         integrity="sha256-tthxNdZk9Up2D6gLZBNxWo/w14TijORR5uNgYj7XP+A=" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.css"
-        integrity="sha256-cDGQ39yChhpN5vzgHbjIdGEtQ5kXE9tttCsI7VR9TuY=" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/js/tabler.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta17/dist/css/tabler.min.css">
     <link href="https://cdn.jsdelivr.net/npm/monaco-editor@0.40.0/min/vs/editor/editor.main.min.css" rel="stylesheet">
     <title>Caddy JSON UI</title>
     <style>
-        .config-editor-wrapper {
-            width: 1000px;
-            /* height: 400px; */
-            box-sizing: content-box;
-            margin: auto !important;
-        }
-
         #config-editor {
-            width: 1000px;
+            /* width: 1000px; */
             height: 400px;
         }
 
-        /* enhanced pure semantic ui */
-        .ui.menu .item>.ui.vertical.menu {
+        /* enhancements for Tabler */
+        .navbar-nav .nav-item+.nav-item {
+            margin-left: 8px;
+        }
+
+        /* extends Tabler default styles */
+        .tabler--loading__container {
+            position: relative;
+        }
+        .tabler--loading__container[data-loading='1']>.loading-box {
+            display: flex;
+        }
+
+        .tabler--loading__container > .loading-box {
+            background-color: rgba(0, 0, 0, .5);
             display: none;
+            align-items: center;
+            justify-content: center;
             position: absolute;
+            top: 0;
             left: 0;
-            top: 100%;
-            z-index: 10;
-            width: 315px;
-        }
-
-        .ui.menu .item>.ui.vertical.menu .item {
-            margin: 0;
-        }
-
-        .ui.menu .item:hover>.item+.ui.vertical.menu {
-            display: block;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
         }
 
         /* custom */
@@ -75,70 +76,108 @@
 </head>
 
 <body x-data="root">
-    <header style="max-width: 1000px;margin: 0 auto;margin-bottom: 20px;">
-        <div class="ui secondary menu">
-            <div class="item">
-                <h3>Caddy JSON UI</h3>
-            </div>
-            <div class="item">
-                <div class="item">Tools<i class="icon icon-caret_down"></i></div>
-                <div class="ui vertical menu">
-                    <a class="item" onclick="dispatchCustomEvent('custom__toolbox__show:modalBcrypt')">bcrypt ...</a>
-                    <a class="item" href="https://caddapto.vercel.app/" target="_blank"
-                        title="Go to Github page...">Caddyfile To JSON (Made by
-                        suryamodulus)<i class="icon icon-open_outline"></i></a>
+    <div class="page">
+        <header class="navbar navbar-light d-print-none">
+            <div class="container-xl">
+                <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+                    <a href="https://github.com/iamspark1e/caddy-json-ui">
+                        Caddy JSON UI
+                    </a>
+                </h1>
+                <!-- FIXME: Tabler navbar will collapse when window matches @sm -->
+                <div class="navbar-nav flex-row order-md-last">
+                    <div class="nav-item">
+                        <!-- FIXME: Cannot read properties of undefined (reading 'backdrop') -->
+                        <div class="dropdown">
+                            <a href="#" class="btn dropdown-toggle" data-bs-toggle="dropdown">Tools</a>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                    data-bs-target="#toolsBcryptModal">Open Bcrypt
+                                    ...</a>
+                                <a class="dropdown-item" href="https://caddapto.vercel.app/" target="_blank"
+                                    title="Go to Github page...">Caddyfile To JSON (Made by
+                                    suryamodulus)</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nav-item">
+                        <span class="d-none d-sm-inline">
+                            <a href="#" class="btn" x-on:click="__discardChanges">
+                                Discard Changes
+                            </a>
+                        </span>
+                    </div>
+                    <div class="nav-item">
+                        <a href="#" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal"
+                            data-bs-target="#modal-report" :class="saving ? 'btn-loading' : ''" :class="changed_config ? '' : 'disabled'" x-on:click="__updateServerConfig">
+                            Save
+                        </a>
+                    </div>
                 </div>
             </div>
-            <div class="right menu" style="padding-right: 0;">
-                <div class="ui item">
-                    <div class="ui primary button" x-on:click="__updateServerConfig"
-                        :class="changed_config ? '' : 'disabled'" :class="saving ? 'loading' : ''">Save</div>
-                </div>
-                <div class="ui item" style="padding-right:0;margin-right:0;">
-                    <div class="ui button" x-on:click="__discardChanges">Discard Changes</div>
+        </header>
+        <div class="page-wrapper">
+            <div class="page-body">
+                <div class="container-xl">
+                    <div class="row row-deck row-cards">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="tabler--loading__container">
+                                        <div class="loading-box" :data-loading="loading ? '1' : ''">
+                                            <!-- loading zone -->
+                                            <div :class="loading ? 'spinner-border' : ''"></div>
+                                        </div>
+                                        <div>
+                                            <div class="alert alert-info" role="alert">
+                                                <h4 class="alert-title">Did you know?</h4>
+                                                <div class="text-secondary">You can use <code>{"$schema": ""}</code> to enable
+                                                    Caddy JSON intellisense. (powered by <a
+                                                        href="https://github.com/abiosoft/caddy-json-schema"
+                                                        target="_blank">abiosoft/caddy-json-schema<i
+                                                            class="icon icon-open_outline"></i></a>)</div>
+                                            </div>
+                                            <div id="config-editor"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </header>
-    <div class="ui segment config-editor-wrapper" :class="loading ? 'loading' : ''">
-        <div class="ui message">
-            You can use <code>{"$schema": ""}</code> to enable Caddy JSON intellisense. (powered by <a
-                href="https://github.com/abiosoft/caddy-json-schema" target="_blank">abiosoft/caddy-json-schema<i
-                    class="icon icon-open_outline"></i></a>)
-        </div>
-        <div id="config-editor"></div>
     </div>
-    <div x-data="modalBcrypt" class="ui dimmer modals page visible" :class="show ? 'active' : ''">
-        <div class="ui standard modal transition visible active">
-            <div class="header">
-                <h3>Bcrypt Tool<span style="font-size: 12px;margin-left: 10px;">(using <a
-                            href="https://github.com/dcodeIO/bcrypt.js" target="_blank"
-                            title="Go to Github page...">bcrypt.js</a> for browser-side
-                        conversion)</span></h3>
-            </div>
-            <div class="content">
-                <form class="ui form">
-                    <div class="field">
-                        <label class="title">Origin Text: </label>
-                        <textarea name="origin" rows="2" name="raw" x-model="data.origin"></textarea>
-                    </div>
-                    <div class="field">
-                        <label class="title">Salt: </label>
-                        <input type="text" name="salt" x-model="data.salt" readonly />
-                    </div>
-                    <div class="field">
-                        <label>Converted Text: (focus to copy)</label>
-                        <textarea name="hash" rows="2" x-model="data.hash" readonly
-                            x-on:focus="copy2Clipboard"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="actions">
-                <div class="ui black deny button" x-on:click="toggle">
-                    Close
+    <div class="modal" id="toolsBcryptModal" x-data="modalBcrypt" tabindex="-1">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bcrypt Tool<span style="font-size: 12px;margin-left: 10px;">(using <a
+                                href="https://github.com/dcodeIO/bcrypt.js" target="_blank"
+                                title="Go to Github page...">bcrypt.js</a> for browser-side
+                            conversion)</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="ui positive button">
-                    Copy To Clipboard
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Origin Text: </label>
+                            <textarea class="form-control" name="origin" rows="2" name="raw"
+                                x-model="data.origin"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Salt: </label>
+                            <input type="text" class="form-control" name="salt" x-model="data.salt" readonly />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Converted Text: (focus to copy)</label>
+                            <textarea class="form-control" name="hash" rows="2" x-model="data.hash" readonly
+                                x-on:focus="copy2Clipboard"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn me-auto" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -448,16 +487,16 @@
 
         // Toolbox - modalBcrypt
         Alpine.data("modalBcrypt", () => ({
-            show: false,
+            // show: false,
             data: {
                 salt: "",
                 origin: "",
                 hash: ""
             },
             bcrypt: null,
-            toggle() {
-                this.show = !this.show
-            },
+            // toggle() {
+            //     this.show = !this.show
+            // },
             copy2Clipboard(e) {
                 if (this.data.hash) {
                     copy2Clipboard(this.data.hash);
@@ -470,9 +509,9 @@
             init() {
                 this.bcrypt = dcodeIO.bcrypt;
                 this.data.salt = this.bcrypt.genSaltSync(10);
-                document.addEventListener("custom__toolbox__show:modalBcrypt", () => {
-                    this.show = true;
-                })
+                // document.addEventListener("custom__toolbox__show:modalBcrypt", () => {
+                //     this.show = true;
+                // })
                 this.$watch('data.origin', value => {
                     this.data.hash = this.bcrypt.hashSync(value, this.data.salt)
                 })
