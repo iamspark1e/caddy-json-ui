@@ -26,11 +26,12 @@
         .tabler--loading__container {
             position: relative;
         }
+
         .tabler--loading__container[data-loading='1']>.loading-box {
             display: flex;
         }
 
-        .tabler--loading__container > .loading-box {
+        .tabler--loading__container>.loading-box {
             background-color: rgba(0, 0, 0, .5);
             display: none;
             align-items: center;
@@ -94,6 +95,10 @@
                                 <a class="dropdown-item" href="#" data-bs-toggle="modal"
                                     data-bs-target="#toolsBcryptModal">Open Bcrypt
                                     ...</a>
+                                <!-- Under Development... -->
+                                <!-- <a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                    data-bs-target="#stepByStepEditor">Open Step-by-Step Editor
+                                    ...</a> -->
                                 <a class="dropdown-item" href="https://caddapto.vercel.app/" target="_blank"
                                     title="Go to Github page...">Caddyfile To JSON (Made by
                                     suryamodulus)</a>
@@ -109,7 +114,8 @@
                     </div>
                     <div class="nav-item">
                         <a href="#" class="btn btn-primary d-none d-sm-inline-block" data-bs-toggle="modal"
-                            data-bs-target="#modal-report" :class="saving ? 'btn-loading' : ''" :class="changed_config ? '' : 'disabled'" x-on:click="__updateServerConfig">
+                            data-bs-target="#modal-report" :class="saving ? 'btn-loading' : ''"
+                            :class="changed_config ? '' : 'disabled'" x-on:click="__updateServerConfig">
                             Save
                         </a>
                     </div>
@@ -131,7 +137,8 @@
                                         <div>
                                             <div class="alert alert-info" role="alert">
                                                 <h4 class="alert-title">Did you know?</h4>
-                                                <div class="text-secondary">You can use <code>{"$schema": ""}</code> to enable
+                                                <div class="text-secondary">You can use <code>{"$schema": "<span x-text="schemaUrl"></span>"}</code> to
+                                                    enable
                                                     Caddy JSON intellisense. (powered by <a
                                                         href="https://github.com/abiosoft/caddy-json-schema"
                                                         target="_blank">abiosoft/caddy-json-schema<i
@@ -178,6 +185,54 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn me-auto" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="stepByStepEditor" x-data="modalStepEditor" tabindex="-1">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Step-by-Step Editor<span
+                            style="font-size: 12px;margin-left: 10px;">(experimental)</span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- modal header -->
+                    <div class="steps steps-counter steps-lime">
+                        <template x-for="i in totalSteps">
+                            <span class="step-item" :class="currentStep === i ? 'active' : ''"></span>
+                        </template>
+                    </div>
+                    <!-- modal content start -->
+                    <form style="margin-top: 20px;">
+                        <!-- modal content /// 1. choose append type -->
+                        <div class="form-step-by-step" x-show="currentStep === 1">
+                            <div class="alert alert-info" role="alert">
+                                <h4 class="alert-title">Plese read this !</h4>
+                                <div class="text-secondary">This editor only works to append a single rule to whole config.</div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-label">Select Append Type: </div>
+                                <select class="form-select">
+                                  <option value="wildcard-sni">Wildcard SNI</option>
+                                </select>
+                              </div>
+                            <!-- FIXME: need config for `admin`? -->
+                        </div>
+                        <!-- modal content /// 2 -->
+                        <div class="form-step-by-step" x-show="currentStep === 2">
+
+                        </div>
+                        <!-- modal content /// 3 -->
+                        <!-- modal content /// 4 -->
+                        <!-- modal content /// 5 -->
+                    </form>
+                    <!-- modal content finished -->
+                </div>
+                <div class="modal-footer" style="text-align: right;">
+                    <button type="button" class="btn me-auto" data-bs-dismiss="modal">Done!</button>
                 </div>
             </div>
         </div>
@@ -258,6 +313,7 @@
             last_config: "",
             changed_config: false,
             saving: false,
+            schemaUrl: "",
             __initMonacoEditor() {
                 this.loading = true;
                 Promise.all([
@@ -482,6 +538,7 @@
             },
             init() {
                 this.__initMonacoEditor();
+                this.schemaUrl = window.location.href + (window.location.href.endsWith("/") ? "caddy_schema.json" : "/caddy_schema.json") 
             }
         }))
 
@@ -516,6 +573,18 @@
                     this.data.hash = this.bcrypt.hashSync(value, this.data.salt)
                 })
             },
+        }))
+
+        Alpine.data('modalStepEditor', () => ({
+            // data
+            totalSteps: 5,
+            currentStep: 1,
+            form: {
+                overwrite: false,
+            }
+            // methods
+
+            // lifecycles
         }))
     })
 </script>
