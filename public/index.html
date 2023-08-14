@@ -137,12 +137,14 @@
                                         <div>
                                             <div class="alert alert-info" role="alert">
                                                 <h4 class="alert-title">Did you know?</h4>
-                                                <div class="text-secondary">You can use <code>{"$schema": "<span x-text="schemaUrl"></span>"}</code> to
+                                                <div class="text-secondary">You can use
+                                                    <code>{"$schema": "<span x-text="schemaUrl"></span>"}</code> to
                                                     enable
                                                     Caddy JSON intellisense. (powered by <a
                                                         href="https://github.com/abiosoft/caddy-json-schema"
                                                         target="_blank">abiosoft/caddy-json-schema<i
-                                                            class="icon icon-open_outline"></i></a>)</div>
+                                                            class="icon icon-open_outline"></i></a>)
+                                                </div>
                                             </div>
                                             <div id="config-editor"></div>
                                         </div>
@@ -211,14 +213,15 @@
                         <div class="form-step-by-step" x-show="currentStep === 1">
                             <div class="alert alert-info" role="alert">
                                 <h4 class="alert-title">Plese read this !</h4>
-                                <div class="text-secondary">This editor only works to append a single rule to whole config.</div>
+                                <div class="text-secondary">This editor only works to append a single rule to whole
+                                    config.</div>
                             </div>
                             <div class="mb-3">
                                 <div class="form-label">Select Append Type: </div>
                                 <select class="form-select">
-                                  <option value="wildcard-sni">Wildcard SNI</option>
+                                    <option value="wildcard-sni">Wildcard SNI</option>
                                 </select>
-                              </div>
+                            </div>
                             <!-- FIXME: need config for `admin`? -->
                         </div>
                         <!-- modal content /// 2 -->
@@ -314,6 +317,7 @@
             changed_config: false,
             saving: false,
             schemaUrl: "",
+            completionProvide: null,
             __initMonacoEditor() {
                 this.loading = true;
                 Promise.all([
@@ -327,7 +331,7 @@
                             validate: true,
                             enableSchemaRequest: true
                         })
-                        monaco.languages.registerCompletionItemProvider('json', {
+                        this.completionProvide = monaco.languages.registerCompletionItemProvider('json', {
                             provideCompletionItems: (model, position) => {
                                 // find out if we are completing a property in the 'dependencies' object.
                                 var textUntilPosition = model.getValueInRange({
@@ -336,139 +340,324 @@
                                     endLineNumber: position.lineNumber,
                                     endColumn: position.column,
                                 });
-                                // var match = textUntilPosition.match(
-                                //     /"servers": {\s*:\s*\{\s*("[^"]*"\s*:\s*"[^"]*"\s*,\s*)*([^"]*)?$/
-                                // );
-                                // if (!match) {
-                                //     return { suggestions: [] };
-                                // }
+                                var appsHttpServersMatch = textUntilPosition.match(
+                                    /"servers": \{?/
+                                );
+                                var appsMatch = textUntilPosition.match(
+                                    /"apps": \{?/
+                                );
+                                var appsHttpMatch = textUntilPosition.match(
+                                    /"http": \{?/
+                                );
+                                var appsHttpHandleMatch = textUntilPosition.match(
+                                    /"handle": \[?/g
+                                );
+                                var appsTlsMatch = textUntilPosition.match(
+                                    /"tls": \{?/
+                                );
+                                var appsLayer4Match = textUntilPosition.match(
+                                    /"layer4": \{?/
+                                );
+                                var appsTlsIssuresMatch = textUntilPosition.match(
+                                    /"issures": \[?/
+                                );
+                                var appsHttpMatcherMatch = textUntilPosition.match(
+                                    /"match": \[?/
+                                );
+
+                                if (appsMatch) {
+                                    if (appsLayer4Match) {
+                                        return {
+                                            suggestions: [
+                                                {
+                                                    label: 'App Layer4',
+                                                    kind: monaco.languages.CompletionItemKind.Function,
+                                                    documentation: "",
+                                                    insertText: `"srv_name": {
+    "listen": [
+        "0.0.0.0:\${1}"
+    ],
+    "routes": [
+        {
+            "handle": [
+                {
+                    "handler": "proxy",
+                    "upstreams": [
+                        {
+                            "dial": [
+                                "127.0.0.1:\${2}"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}`,
+                                                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                },
+                                            ]
+                                        }
+                                    }
+                                    if (appsTlsMatch) {
+                                        if (appsTlsIssuresMatch) {
+                                            return {
+                                                suggestions: [
+                                                    {
+                                                        label: 'App TLS Issurer (ZeroSSL + Cloudflare = Wildcard)',
+                                                        kind: monaco.languages.CompletionItemKind.Function,
+                                                        documentation: "",
+                                                        insertText: `{
+    "ca": "https://acme.zerossl.com/v2/DV90",
+    "challenges": {
+        "dns": {
+            "propagation_delay": 60,
+            "provider": {
+                "api_token": "\${1}",
+                "name": "cloudflare"
+            },
+            "ttl": 60
+        }
+    },
+    "email": "",
+    "external_account": {
+        "key_id": "\${3}",
+        "mac_key": "\${2}"
+    },
+    "module": "zerossl"
+}`,
+                                                        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                    },
+                                                ]
+                                            }
+                                        }
+                                        return {
+                                            suggestions: [
+                                                // tls configuration
+                                                {
+                                                    label: 'App TLS Issurer ACME',
+                                                    kind: monaco.languages.CompletionItemKind.Function,
+                                                    documentation: '`apps.tls',
+                                                    insertText: `{
+    "automation": {
+        "policies": [
+            {
+                "issuers": [
+                    {
+                        "email": "\${1}",
+                        "module": "acme"
+                    }
+                ],
+                "subjects": [\${2}]
+            }
+        ]
+    },
+    "certificates": {
+        "automate": [\${0}]
+    }
+}`,
+                                                    insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                },
+                                            ]
+                                        }
+                                    }
+                                    if (appsHttpMatch) {
+                                        if (appsHttpServersMatch) {
+                                            if (appsHttpMatcherMatch) {
+                                                return {
+                                                    suggestions: [
+                                                        {
+                                                            label: 'HTTP Server match rule - remote_ip',
+                                                            kind: monaco.languages.CompletionItemKind.Function,
+                                                            documentation: "",
+                                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                            insertText: `{"remote_ip": {"ranges": [\${0}]}}`,
+                                                        },
+                                                        {
+                                                            label: 'HTTP Server match rule - host',
+                                                            kind: monaco.languages.CompletionItemKind.Function,
+                                                            documentation: "",
+                                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                            insertText: `{"host": ["\${0}"]}`,
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                            if (appsHttpHandleMatch) {
+                                                return {
+                                                    suggestions: [
+                                                        {
+                                                            label: 'HTTP Server handler (reverse_proxy)',
+                                                            kind: monaco.languages.CompletionItemKind.Function,
+                                                            documentation: '`apps.http.servers[srv_id]`',
+                                                            insertText: `{
+    "group": "",
+    "handle": [
+        {
+            "handler": "reverse_proxy",
+            "upstreams": [
+                {
+                    "dial": "127.0.0.1:\${1}"
+                }
+            ]
+        }
+    ],
+    "match": [
+        {"host": ["\${0}"]}
+    ]
+},`,
+                                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                        },
+                                                        {
+                                                            label: 'HTTP Server handler (file_server)',
+                                                            kind: monaco.languages.CompletionItemKind.Function,
+                                                            documentation: '`apps.http.servers[srv_id]`',
+                                                            insertText: [
+                                                                '{',
+                                                                '\t"handler": "file_server",',
+                                                                '\t"hide": ["${1}"],',
+                                                                '\t"root": "${0}"',
+                                                                '}'].join('\n'),
+                                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                        },
+                                                        {
+                                                            label: 'HTTP Server handler (webdav)',
+                                                            kind: monaco.languages.CompletionItemKind.Function,
+                                                            documentation: '`apps.http.servers[srv_id]`',
+                                                            insertText: `{
+    "handler": "webdav",
+    "root": "\${0}",
+    "prefix": ""
+}`,
+                                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                        },
+                                                        {
+                                                            label: 'HTTP Server handler (http_basic)',
+                                                            kind: monaco.languages.CompletionItemKind.Function,
+                                                            documentation: '`apps.http.servers[srv_id]`',
+                                                            insertText: `{
+    "handler": "authentication",
+    "providers": {
+        "http_basic": {
+            "accounts": [
+                {
+                    "password": "\${2}",
+                    "username": "\${1}"
+                }
+            ],
+            "hash": {
+                "algorithm": "bcrypt"
+            }
+        }
+    }
+}`,
+                                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                        },
+                                                        {
+                                                            label: 'HTTP Server handler (forward_proxy)',
+                                                            kind: monaco.languages.CompletionItemKind.Function,
+                                                            documentation: '`apps.http.servers[srv_id]`',
+                                                            insertText: `{
+    "group": "naiveproxy",
+    "handle": [
+        {
+            "auth_pass_deprecated": "\${2}",
+            "auth_user_deprecated": "\${1}",
+            "handler": "forward_proxy",
+            "hide_ip": true,
+            "hide_via": true,
+            "probe_resistance": {
+                "domain": "\${0}"
+            }
+        }
+    ]
+}`,
+                                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                        },
+                                                        {
+                                                            label: 'HTTP Server handler (static_response)',
+                                                            kind: monaco.languages.CompletionItemKind.Function,
+                                                            documentation: '`apps.http.servers[srv_id]`',
+                                                            insertText: [
+                                                                '{',
+                                                                '\t"handler": "static_response",',
+                                                                '\t"status_code": 200,',
+                                                                '\t"body": "${0}"',
+                                                                '}'].join('\n'),
+                                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                        },
+                                                        {
+                                                            label: 'HTTP Server handler (subroute)',
+                                                            kind: monaco.languages.CompletionItemKind.Function,
+                                                            documentation: '`apps.http.servers[srv_id]`',
+                                                            insertText: [
+                                                                '{',
+                                                                '\t"handler": "subroute",',
+                                                                '\t"routes": [${0}]',
+                                                                '}'].join('\n'),
+                                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                        },
+                                                    ]
+                                                }
+                                            }
+
+                                            return {
+                                                suggestions: [
+                                                    // http.handlers
+                                                    {
+                                                        label: 'HTTP Server - Wildcard',
+                                                        kind: monaco.languages.CompletionItemKind.Function,
+                                                        documentation: '`apps.http.servers[srv_id]`',
+                                                        insertText: `"srv0": {
+    "listen": [
+        ":\${1}"
+    ],
+    "protocols": ["h1","h2","h3"],
+    "routes": [{
+        "group": "wildcard match",
+        "handle": [{
+            "handler": "subroute",
+            "routes": [{
+                "group": "match example1",
+                "handle": [\${0}],
+                "match": [{
+                    "host": ["\${3}"]
+                }]
+            }]
+        }],
+        "match": [{
+            "host": [
+                "\${2}"
+            ]
+        }]
+    }]
+}`,
+                                                        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                                                    }
+                                                ]
+                                            };
+                                        }
+                                    }
+                                }
+
+
                                 return {
                                     suggestions: [
-                                        // http.handlers
                                         {
-                                            label: 'match (SNI match)',
+                                            label: 'Logging Default Configuration',
                                             kind: monaco.languages.CompletionItemKind.Function,
-                                            documentation: '`apps.http.servers[srv_id]`',
-                                            insertText: [
-                                                '"${1:srv}": {',
-                                                '\t"listen": [":${2:port}"],',
-                                                '\t"routes": [{',
-                                                '\t\t"match": [{',
-                                                '\t\t\t"host": ["${0}"]',
-                                                '\t\t}]',
-                                                '\t}]',
-                                                '}'].join('\n'),
-                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                                        },
-                                        {
-                                            label: 'handler (Reverse Proxy)',
-                                            kind: monaco.languages.CompletionItemKind.Function,
-                                            documentation: '`apps.http.servers[srv_id]`',
-                                            insertText: [
-                                                '{',
-                                                '\t"handler": "reverse_proxy",',
-                                                '\t"upstreams": [{',
-                                                '\t\t"dial": "${0}"',
-                                                '\t}]',
-                                                '}'].join('\n'),
-                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                                        },
-                                        {
-                                            label: 'handler (File Server)',
-                                            kind: monaco.languages.CompletionItemKind.Function,
-                                            documentation: '`apps.http.servers[srv_id]`',
-                                            insertText: [
-                                                '{',
-                                                '\t"handler": "file_server",',
-                                                '\t"hide": ["${1}"],',
-                                                '\t"root": "${0}"',
-                                                '}'].join('\n'),
-                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                                        },
-                                        {
-                                            label: 'handler (WebDAV)',
-                                            kind: monaco.languages.CompletionItemKind.Function,
-                                            documentation: '`apps.http.servers[srv_id]`',
-                                            insertText: [
-                                                '{',
-                                                '\t"handler": "webdav",',
-                                                '\t"prefix": "${1}",',
-                                                '\t"root": "${0}"',
-                                                '}'].join('\n'),
-                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                                        },
-                                        {
-                                            label: 'handler (Basic Auth)',
-                                            kind: monaco.languages.CompletionItemKind.Function,
-                                            documentation: '`apps.http.servers[srv_id]`',
-                                            insertText: [
-                                                '{',
-                                                '\t"handler": "authentication",',
-                                                '\t"providers": "http_basic",',
-                                                '\t"hash": "bcrypt",',
-                                                '\t"accounts": [{',
-                                                '\t\t"username": "${1}",',
-                                                '\t\t"password": "${2}",',
-                                                '\t\t"salt": "${0}",',
-                                                '\t}],',
-                                                '\t"realm": "restricted"',
-                                                '}'].join('\n'),
-                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                                        },
-                                        {
-                                            label: 'handler (Forward Proxy)',
-                                            kind: monaco.languages.CompletionItemKind.Function,
-                                            documentation: '`apps.http.servers[srv_id]`',
-                                            insertText: [
-                                                '{',
-                                                '\t"handler": "forward_proxy",',
-                                                '\t"hide_ip": true,',
-                                                '\t"hide_via": true,',
-                                                '\t"auth_user_deprecated": "${1}",',
-                                                '\t"auth_pass_deprecated": "${2}",',
-                                                '\t"probe_resistance": {"domain": "${0}"}',
-                                                '}'].join('\n'),
-                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                                        },
-                                        {
-                                            label: 'handler (Static Response)',
-                                            kind: monaco.languages.CompletionItemKind.Function,
-                                            documentation: '`apps.http.servers[srv_id]`',
-                                            insertText: [
-                                                '{',
-                                                '\t"handler": "static_response",',
-                                                '\t"status_code": 200,',
-                                                '\t"body": "${0}"',
-                                                '}'].join('\n'),
-                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                                        },
-                                        {
-                                            label: 'handler (Subroute)',
-                                            kind: monaco.languages.CompletionItemKind.Function,
-                                            documentation: '`apps.http.servers[srv_id]`',
-                                            insertText: [
-                                                '{',
-                                                '\t"handler": "subroute",',
-                                                '\t"routes": [${0}]',
-                                                '}'].join('\n'),
-                                            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                                        },
-                                        // tls configuration
-                                        {
-                                            label: 'tls',
-                                            kind: monaco.languages.CompletionItemKind.Function,
-                                            documentation: '`apps.tls',
-                                            insertText: [
-                                                '"tls": {',
-                                                '\t"certificates": {',
-                                                '\t\t"automate": ["${0}"]',
-                                                '\t},',
-                                                '\t"automation":{"policies":[{"issuers": [{',
-                                                '\t\t"email": "${1}",',
-                                                '\t\t"module": "${2}"',
-                                                '\t}]}]', // it seems that no "subjects", still works
-                                                '\t}',
-                                                '}'].join('\n'),
+                                            documentation: "",
+                                            insertText: `"logging": {
+    "logs": {
+        "default": {
+            "level": "INFO",
+            "writer": {
+                "filename": "/var/log/caddy/access.log",
+                "output": "file"
+            }
+        }
+    }
+}`,
                                             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
                                         },
                                     ]
@@ -485,6 +674,7 @@
                                 this.last_config = res.data;
                                 editor.getModel().setValue(JSON.stringify(JSON.parse(res.data), null, 4))
                                 editor.getModel().onDidChangeContent((event) => {
+                                    this.completionProvide.dispose()
                                     this.changed_config = false;
                                     try {
                                         let currentJSON = JSON.stringify(editor.getModel().getValue())
@@ -538,7 +728,7 @@
             },
             init() {
                 this.__initMonacoEditor();
-                this.schemaUrl = window.location.href + (window.location.href.endsWith("/") ? "caddy_schema.json" : "/caddy_schema.json") 
+                this.schemaUrl = window.location.href + (window.location.href.endsWith("/") ? "caddy_schema.json" : "/caddy_schema.json")
             }
         }))
 
