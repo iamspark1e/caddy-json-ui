@@ -52,8 +52,14 @@ func InitPlugin(plugin_config_yaml_path string) (func(c *gin.Context), error) {
 		return nil, load_err
 	}
 	return func(c *gin.Context) {
+		if c.Request.Method != "GET" {
+			c.AbortWithStatus(http.StatusMethodNotAllowed)
+			return
+		}
 		server_name := c.Query("server_name")
-		// logger(fmt.Sprintf("server_name: %s, signature_schemes: %s, cipher_suites: %s", server_name, signature_schemes, cipher_suites), nil)
+		signature_schemes := c.Query("signature_schemes")
+		cipher_suites := c.Query("cipher_suites")
+		log.Printf("server_name: %s, signature_schemes: %s, cipher_suites: %s", server_name, signature_schemes, cipher_suites)
 		if server_name == "" {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
@@ -83,7 +89,7 @@ func InitPlugin(plugin_config_yaml_path string) (func(c *gin.Context), error) {
 			logger(fmt.Sprintf("[Caddy TLS Request: %s] Fallback to exact server_name", server_name), nil)
 			if _, err := os.Stat(plugin_conf.CertDir + "/" + server_name); err != nil {
 				logger(fmt.Sprintf("[Caddy TLS Request: %s] Check exact server_name cert failed", server_name), err)
-				c.AbortWithStatus(http.StatusBadRequest)
+				c.AbortWithStatus(http.StatusNotFound)
 				return
 			}
 			requestFilePrefix = plugin_conf.CertDir + "/" + server_name + "/" + server_name

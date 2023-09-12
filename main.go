@@ -136,7 +136,7 @@ func main() {
 					if err != nil {
 						log.Printf("plugin %s is disabled due to %s", conf.Name, err.Error())
 					} else {
-						pluginApi.Any(conf.ConfigPath, t)
+						pluginApi.Any(conf.Route, t)
 					}
 				}
 			}
