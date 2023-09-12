@@ -63,5 +63,5 @@ go run main.go --port 30081 --caddyadminapi "http://127.0.0.1:2019"
 ### Build
 
 ```bash
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-w -s" -tags=nomsgpack .
+GOOS=linux GOARCH=arm64 CGO_ENABLED=1 go build -ldflags="-w -s" -tags=nomsgpack .
 ```

@@ -17,7 +17,7 @@ import (
 //	    server_name = SNI value,
 //		signature_schemes = comma-separated list of hex IDs of signature algorithms,
 //		and cipher_suites = comma-separated list of hex IDS of cipher suites.
-type TokenizedUri struct {
+type tokenizedUri struct {
 	Token string `uri:"token" binding:"required"`
 }
 
@@ -26,18 +26,18 @@ type pluginConfig struct {
 	Token   string `yaml:"token"`
 }
 
-var (
-	Trace *log.Logger
-	Info  *log.Logger
-	Warn  *log.Logger
-	Error *log.Logger
-)
+// var (
+// 	Trace *log.Logger
+// 	Info  *log.Logger
+// 	Warn  *log.Logger
+// 	Error *log.Logger
+// )
 
-func Logger(message string, reason error) {
+func logger(message string, reason error) {
 	if reason != nil {
-		Error.Printf("%s. (%s)", message, reason.Error())
+		log.Printf("%s. (%s)", message, reason.Error())
 	} else {
-		Info.Printf("%s", message)
+		log.Printf("%s", message)
 	}
 }
 
@@ -53,13 +53,13 @@ func InitPlugin(plugin_config_yaml_path string) (func(c *gin.Context), error) {
 	}
 	return func(c *gin.Context) {
 		server_name := c.Query("server_name")
-		// Logger(fmt.Sprintf("server_name: %s, signature_schemes: %s, cipher_suites: %s", server_name, signature_schemes, cipher_suites), nil)
+		// logger(fmt.Sprintf("server_name: %s, signature_schemes: %s, cipher_suites: %s", server_name, signature_schemes, cipher_suites), nil)
 		if server_name == "" {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
 		}
 
-		var tokenizedUri TokenizedUri
+		var tokenizedUri tokenizedUri
 		if err := c.ShouldBindUri(&tokenizedUri); err != nil {
 			c.AbortWithStatus(http.StatusBadRequest)
 			return
@@ -70,19 +70,19 @@ func InitPlugin(plugin_config_yaml_path string) (func(c *gin.Context), error) {
 		}
 		// if server_name can match wildcard cert
 		var topDomain string = getTopDomainFromServerName(server_name)
-		Logger(fmt.Sprintf("[Caddy TLS Request: %s] A new request from %s, wildcard should be: %s", server_name, c.ClientIP(), topDomain), nil)
+		logger(fmt.Sprintf("[Caddy TLS Request: %s] A new request from %s, wildcard should be: %s", server_name, c.ClientIP(), topDomain), nil)
 		var requestFilePrefix string = plugin_conf.CertDir + "/" + topDomain + "/" + topDomain
 		var matchedFiles []string
 		if _, err := os.Stat(plugin_conf.CertDir + "/" + topDomain); err != nil {
 			if os.IsNotExist(err) {
-				Logger(fmt.Sprintf("[Caddy TLS Request: %s] Wildcard cert not found in path: %s", server_name, plugin_conf.CertDir+"/"+topDomain), err)
+				logger(fmt.Sprintf("[Caddy TLS Request: %s] Wildcard cert not found in path: %s", server_name, plugin_conf.CertDir+"/"+topDomain), err)
 			} else {
-				Logger(fmt.Sprintf("[Caddy TLS Request: %s] Check wildcard cert exist failed", server_name), err)
+				logger(fmt.Sprintf("[Caddy TLS Request: %s] Check wildcard cert exist failed", server_name), err)
 			}
 			// else, try exact server_name cert
-			Logger(fmt.Sprintf("[Caddy TLS Request: %s] Fallback to exact server_name", server_name), nil)
+			logger(fmt.Sprintf("[Caddy TLS Request: %s] Fallback to exact server_name", server_name), nil)
 			if _, err := os.Stat(plugin_conf.CertDir + "/" + server_name); err != nil {
-				Logger(fmt.Sprintf("[Caddy TLS Request: %s] Check exact server_name cert failed", server_name), err)
+				logger(fmt.Sprintf("[Caddy TLS Request: %s] Check exact server_name cert failed", server_name), err)
 				c.AbortWithStatus(http.StatusBadRequest)
 				return
 			}

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 
 	bootstrap "caddy-json-ui/bootstrap"
@@ -123,10 +124,12 @@ func main() {
 		for _, conf := range pluginConf.Plugins {
 			routeHandler, err := utils.LoadAndInvokeSomethingFromPlugin(conf.PluginPath)
 			if err != nil {
-				log.Printf("plugin %s is disabled due to %s", conf.Name, err.Error())
+				log.Printf("plugin %s is disabled due to load error: %s", conf.Name, err.Error())
 			} else {
-				handler, ok := routeHandler.(types.InitPlugin)
+				// cannot be extract to outer types
+				handler, ok := routeHandler.(func(string) (func(*gin.Context), error))
 				if !ok {
+					fmt.Println(reflect.TypeOf(routeHandler))
 					log.Printf("plugin %s is disabled due to plugin file incorrect", conf.Name)
 				} else {
 					t, err := handler(conf.ConfigPath)
