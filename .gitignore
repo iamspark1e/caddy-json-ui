@@ -27,3 +27,4 @@
 !.github/**/*
 !public/**/*
 !docs/**/*
+!.gitattributes
